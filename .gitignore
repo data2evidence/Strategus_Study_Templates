@@ -1,0 +1,7 @@
+*DS_Store
+eunomia_datasets/*
+inst/*
+renv/*
+results/*
+app.R
+
