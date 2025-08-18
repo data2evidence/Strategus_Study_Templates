@@ -5,3 +5,4 @@ renv/*
 results/*
 app.R
 
+.Rproj.user

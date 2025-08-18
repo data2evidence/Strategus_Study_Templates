@@ -7,8 +7,8 @@ library(dplyr)
 library(Strategus)
 
 # Study time window
-studyStartDate <- '19000101' # YYYYMMDD
-studyEndDate <- '20231231'   # YYYYMMDD
+studyStartDate <- "19000101" # YYYYMMDD
+studyEndDate <- "20231231" # YYYYMMDD
 
 # Load cohort definitions
 cohortDefinitionSet <- CohortGenerator::getCohortDefinitionSet(
@@ -16,7 +16,7 @@ cohortDefinitionSet <- CohortGenerator::getCohortDefinitionSet(
   jsonFolder = "inst/Eunomia/sampleStudy/cohorts",
   sqlFolder = "inst/Eunomia/sampleStudy/sql/sql_server"
 )
-#print(cohortDefinitionSet)
+# print(cohortDefinitionSet)
 
 # Target and outcome cohorts
 targetCohortTable <- "sample_study"
@@ -26,15 +26,11 @@ outcomeCohortId <- 3
 
 # Stratification variables (if any)
 strata <- list(
-  gender = c("gender")
+  #gender = c("gender")
+  age = c("age")
 )
+# strata <- list("age", "gender")
 
-# Time gap and follow-up period
-eventGap <- 7  # Time gap in days
-followUpDays <- 365  # Follow-up period in days
-
-# Minimum cell count for privacy protection
-minCellCount <- 5
 
 # CohortSurvivalModule ---------------------------------------------------------
 csModuleSettingsCreator <- CohortSurvivalModule$new()
@@ -44,9 +40,9 @@ cohortSurvivalModuleSpecifications <- csModuleSettingsCreator$createModuleSpecif
   targetCohortId = targetCohortId,
   outcomeCohortTable = outcomeCohortTable,
   outcomeCohortId = outcomeCohortId,
-  #strata = strata,
-  eventGap = eventGap,
-  followUpDays = followUpDays,
+  strata = strata,
+  analysisType = "single_event",
+  competingOutcomeCohortTable = NULL
 )
 
 print(cohortSurvivalModuleSpecifications)

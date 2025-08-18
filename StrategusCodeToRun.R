@@ -30,8 +30,14 @@ convertEunomiaSqliteToDuckDB <- function() {
     server = sqlite_file
   )
   sqlite_conn <- DatabaseConnector::connect(sqlite_connectionDetails)
+  print(paste("sqlite_conn type is : ", class(sqlite_conn)))
 
-  duckdb_file <- tempfile(fileext = ".duckdb")
+  # duckdb_file <- tempfile(fileext = ".duckdb")
+  duckdb_file <- "my_eunomia_v2.duckdb"
+  if (file.exists(duckdb_file)) {
+    print(paste("Removing existing DuckDB file:", duckdb_file))
+    file.remove(duckdb_file)
+}
   # Create connection details for DuckDB
   duckdb_connectionDetails <- DatabaseConnector::createConnectionDetails(
     dbms = "duckdb",
@@ -39,6 +45,7 @@ convertEunomiaSqliteToDuckDB <- function() {
   )
   # Connect to DuckDB using DatabaseConnector
   duckdb_conn <- DatabaseConnector::connect(duckdb_connectionDetails)
+  print(paste("duckdb_conn type is : ", class(duckdb_conn)))
 
   # Copy all tables from SQLite to DuckDB
   tables <- DatabaseConnector::getTableNames(sqlite_conn)
@@ -61,7 +68,10 @@ convertEunomiaSqliteToDuckDB <- function() {
       }
     )
   }
-  print(DatabaseConnector::getTableNames(duckdb_conn))
+  tables <- DatabaseConnector::getTableNames(duckdb_conn)
+  cat("Tables in the database:\n")
+  print(tables)
+
   tryCatch(
     {
       person_count <- DatabaseConnector::querySql(duckdb_conn, "SELECT COUNT(*) AS patient_count FROM person")
@@ -72,9 +82,21 @@ convertEunomiaSqliteToDuckDB <- function() {
     }
   )
 
+  # List columns for each table
+  # List columns for the person table
+  # List columns in the 'person' table
+  query <- "
+    SELECT column_name, data_type
+    FROM information_schema.columns
+    WHERE table_name = 'person'
+  ORDER BY ordinal_position
+  "
+  cols <- DatabaseConnector::querySql(duckdb_conn, query)
+  print(cols)
+
   # Disconnect SQLite and DuckDB
   DatabaseConnector::disconnect(sqlite_conn)
-  DatabaseConnector::disconnect(duckdb_conn)
+  # DatabaseConnector::disconnect(duckdb_conn)
 
   message("Conversion complete. DuckDB file: ", duckdb_file)
 
@@ -107,11 +129,11 @@ if (dir.exists(results_folder)) {
 # Recreate the empty folder (optional, if Strategus expects it to exist)
 dir.create(results_folder, showWarnings = FALSE, recursive = TRUE)
 # You can use this snippet to test your connection
-conn <- DatabaseConnector::connect(connectionDetails)
-DatabaseConnector::disconnect(conn)
+# conn <- DatabaseConnector::connect(connectionDetails)
+# DatabaseConnector::disconnect(conn)
 ## =========== END OF INPUTS ==========
 
-fileName <- file.path("inst", "Eunomia", "SampleStudy", "sampleStudyAnalysisSpecificationSurvival.json")
+fileName <- file.path("inst", "Eunomia", "sampleStudy", "sampleStudyAnalysisSpecificationSurvival.json")
 analysisSpecifications <- ParallelLogger::loadSettingsFromJson(
   fileName = fileName
 )
@@ -130,29 +152,14 @@ executionSettings <- Strategus::createCdmExecutionSettings(
 if (!dir.exists(file.path(outputLocation, databaseName))) {
   dir.create(file.path(outputLocation, databaseName), recursive = T)
 }
-ParallelLogger::saveSettingsToJson(
-  object = executionSettings,
-  fileName = file.path(outputLocation, databaseName, "executionSettings.json")
+# ParallelLogger::saveSettingsToJson(
+#  object = executionSettings,
+#  fileName = file.path(outputLocation, databaseName, "executionSettings.json")
+# )
+
+Strategus::execute(
+  analysisSpecifications = analysisSpecifications,
+  executionSettings = executionSettings,
+  connectionDetails = connectionDetails
 )
-
-
-tryCatch(
-  {
-    Strategus::execute(
-      analysisSpecifications = analysisSpecifications,
-      executionSettings = executionSettings,
-      connectionDetails = connectionDetails
-    )
-  },
-  error = function(e) {
-    message("[DuckDB / DatabaseConnector] Caught error: ", e$message)
-    # Optionally re-throw
-    stop(e)
-  }
-)
-
-
 cat("Execution complete\n")
-
-# library(PatientLevelPrediction)
-# viewMultiplePlp("results/Eunomia/strategusWork/PatientLevelPredictionModule")
